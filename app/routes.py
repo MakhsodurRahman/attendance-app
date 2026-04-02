@@ -1,11 +1,43 @@
 from flask import request, jsonify, render_template
 from app import app
-from app.models import add_student, mark_attendance, get_attendance, get_attendance_stats, get_student_attendance
 from datetime import date, datetime
+from app.models import add_student, mark_attendance, get_attendance, get_attendance_stats, get_student_attendance, get_all_students, update_student, delete_student, get_dashboard_stats
+
+@app.context_processor
+def inject_now():
+    return {'now': datetime.now()}
 
 @app.route('/')
 def home():
-    return render_template("index.html")
+    stats = get_dashboard_stats()
+    return render_template("index.html", stats=stats)
+
+@app.route('/dashboard_stats')
+def dashboard_stats():
+    return jsonify(get_dashboard_stats())
+
+@app.route('/students', methods=['GET'])
+def get_students():
+    students = get_all_students()
+    return jsonify(students)
+
+@app.route('/update_student/<int:student_id>', methods=['PUT'])
+def update_student_route(student_id):
+    data = request.get_json()
+    name = data.get("name")
+    if not name:
+        return jsonify({"error": "Name is required"}), 400
+    update_student(student_id, name)
+    return jsonify({"message": "Student updated successfully!"})
+
+@app.route('/delete_student/<int:student_id>', methods=['DELETE'])
+def delete_student_route(student_id):
+    delete_student(student_id)
+    return jsonify({"message": "Student deleted successfully!"})
+
+@app.route('/students_page')
+def students_page():
+    return render_template("students.html")
 
 @app.route('/register_student', methods=['POST'])
 def register_student():

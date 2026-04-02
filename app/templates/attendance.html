@@ -1,29 +1,69 @@
-<table class="w-full border-collapse border border-white/30 backdrop-blur-md bg-white/20 rounded-lg text-white">
-    <thead>
-        <tr class="bg-white/30">
-            <th class="border p-2">Student Name</th>
-            <th class="border p-2">Date</th>
-            <th class="border p-2">Status</th>
-            <th class="border p-2">Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for record in records %}
-        <tr>
-            <td class="border p-2">{{ record.name }}</td>
-            <td class="border p-2">{{ record.date }}</td>
-            <td class="border p-2 {% if record.status == 'Absent' %} text-red-400 {% else %} text-blue-600 {% endif %}">
-                {{ record.status }}
-            </td>
-            <td class="border p-2">
-                {% if record.status == "Present" %}
-                    <button onclick="markAbsent('{{ record.student_id }}')" 
-                            class="bg-red-500/50 text-white px-4 py-2 rounded-lg hover:bg-red-800/50">
-                        Mark Absent
-                    </button>
+{% extends "base.html" %}
+
+{% block title %}Attendance Records - Attendify{% endblock %}
+{% block header %}Attendance History{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-gray-800">Records List</h3>
+        <button onclick="location.reload()" class="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition">
+            <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-gray-50 text-gray-500 text-sm uppercase font-semibold">
+                <tr>
+                    <th class="px-6 py-4">Student Name</th>
+                    <th class="px-6 py-4">Date</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4 text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for record in records %}
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4 font-medium text-gray-800">{{ record.name }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ record.date }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold 
+                            {% if record.status == 'Absent' %} bg-red-100 text-red-700 {% else %} bg-green-100 text-green-700 {% endif %}">
+                            {{ record.status }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        {% if record.status == "Present" %}
+                            <button onclick="markAbsent('{{ record.student_id }}')" 
+                                    class="text-red-600 hover:bg-red-50 px-4 py-2 rounded-lg transition text-sm font-semibold">
+                                Mark Absent
+                            </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not records %}
+                <tr>
+                    <td colspan="4" class="px-6 py-10 text-center text-gray-500">No attendance records found.</td>
+                </tr>
                 {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    function markAbsent(studentId) {
+        fetch("/mark_absent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ student_id: studentId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            showToast(data.message);
+            setTimeout(() => location.reload(), 1000);
+        });
+    }
+</script>
+{% endblock %}
