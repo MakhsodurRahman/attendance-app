@@ -3,7 +3,7 @@ name: CI/CD for Flask App (Without Docker Compose)
 on:
   push:
     branches:
-      - main  # Trigger pipeline on push to main
+      - main  # Trigger pipeline on push to main # makhsodur
 
 jobs:
   build-and-push:
@@ -80,3 +80,4 @@ jobs:
               ${{ secrets.DOCKER_USERNAME }}/flask-attendance-app
 
           EOF
+
