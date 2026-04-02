@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - EduPortal{% endblock %}
+{% block header %}Your Attendance Summary{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+        <div class="p-3 bg-green-100 rounded-lg text-green-600">
+            <i class="fas fa-calendar-check text-2xl"></i>
+        </div>
+        <div>
+            <p class="text-sm text-gray-500 font-medium">Total Presence</p>
+            <h3 class="text-2xl font-bold text-gray-800">
+                {{ attendance|selectattr('status', 'equalto', 'Present')|list|length }}
+            </h3>
+        </div>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
+        <div class="p-3 bg-red-100 rounded-lg text-red-600">
+            <i class="fas fa-calendar-times text-2xl"></i>
+        </div>
+        <div>
+            <p class="text-sm text-gray-500 font-medium">Total Absences</p>
+            <h3 class="text-2xl font-bold text-gray-800">
+                {{ attendance|selectattr('status', 'equalto', 'Absent')|list|length }}
+            </h3>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="p-6 border-b border-gray-100 bg-gray-50/50">
+        <h3 class="text-lg font-bold text-gray-800">Your Recent Attendance</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-gray-50 text-gray-500 text-sm uppercase font-semibold">
+                <tr>
+                    <th class="px-6 py-4">Date</th>
+                    <th class="px-6 py-4">Class</th>
+                    <th class="px-6 py-4">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for record in attendance %}
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4 font-medium text-gray-800">{{ record.date }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ record.class_name }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold 
+                            {% if record.status == 'Absent' %} bg-red-100 text-red-700 {% else %} bg-green-100 text-green-700 {% endif %}">
+                            {{ record.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not attendance %}
+                <tr>
+                    <td colspan="3" class="px-6 py-10 text-center text-gray-500">No attendance records found.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

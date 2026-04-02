@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Dashboard - EduPortal{% endblock %}
+{% block header %}Welcome, {{ teacher.name }}!{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <div class="flex items-center space-x-4">
+            <div class="p-3 bg-indigo-100 rounded-lg text-indigo-600">
+                <i class="fas fa-chalkboard text-2xl"></i>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500 font-medium">Your Classes</p>
+                <h3 class="text-2xl font-bold text-gray-800">{{ classes|length }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-8">
+    <div class="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-gray-800">Your Managed Classes</h3>
+        <button onclick="document.getElementById('createClassModal').classList.remove('hidden')" 
+            class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition flex items-center">
+            <i class="fas fa-plus mr-2"></i> Create Class
+        </button>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+        {% for cls in classes %}
+        <div class="border border-gray-100 rounded-xl p-6 hover:shadow-md transition bg-gray-50/30">
+            <h4 class="text-xl font-bold text-gray-800 mb-2">{{ cls.class_name }}</h4>
+            <div class="flex justify-between items-center mt-4">
+                <a href="/class/{{ cls.id }}/attendance" class="text-indigo-600 font-semibold hover:underline flex items-center">
+                    <i class="fas fa-clipboard-check mr-2"></i> Take Attendance
+                </a>
+                <span class="text-xs text-gray-400">Class ID: #{{ cls.id }}</span>
+            </div>
+        </div>
+        {% endfor %}
+        {% if not classes %}
+        <div class="col-span-full text-center py-10 text-gray-500">
+            No classes created yet. Click "Create Class" to get started.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Class Modal -->
+<div id="createClassModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-xl shadow-2xl max-w-md w-full mx-4">
+        <h3 class="text-xl font-bold mb-6">Create New Class</h3>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Class Name</label>
+            <input id="newClassName" type="text" placeholder="e.g. Mathematics 101" 
+                class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-3 bg-gray-50 border">
+        </div>
+        <div class="flex justify-end space-x-3">
+            <button onclick="document.getElementById('createClassModal').classList.add('hidden')" 
+                class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">Cancel</button>
+            <button onclick="createClass()" 
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Create</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function createClass() {
+        const name = document.getElementById('newClassName').value;
+        if (!name) return alert('Please enter a class name');
+        
+        fetch('/create_class', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        }).then(res => res.json()).then(data => {
+            showToast(data.message);
+            location.reload();
+        });
+    }
+</script>
+{% endblock %}

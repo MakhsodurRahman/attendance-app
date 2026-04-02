@@ -12,20 +12,109 @@ def add_student(name):
     conn.close()
     return student_id
 
-def mark_attendance(student_id, date, status="Present"):
+def get_user_by_username(username):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return user
+
+def create_user(username, password_hash, email, role):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO users (username, password_hash, email, role) VALUES (%s, %s, %s, %s)",
+                   (username, password_hash, email, role))
+    user_id = cursor.lastrowid
+    
+    # Create corresponding profile
+    if role == 'teacher':
+        cursor.execute("INSERT INTO teachers (user_id, name) VALUES (%s, %s)", (user_id, username))
+    elif role == 'student':
+        cursor.execute("INSERT INTO students (user_id, name) VALUES (%s, %s)", (user_id, username))
+        
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_teacher_by_user_id(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM teachers WHERE user_id = %s", (user_id,))
+    teacher = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return teacher
+
+def get_student_by_user_id(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM students WHERE user_id = %s", (user_id,))
+    student = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return student
+
+def create_class(name, teacher_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO classes (class_name, teacher_id) VALUES (%s, %s)", (name, teacher_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+def get_classes_by_teacher(teacher_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM classes WHERE teacher_id = %s", (teacher_id,))
+    classes = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return classes
+
+def get_students_by_class(class_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT s.* FROM students s
+        JOIN enrollments e ON s.id = e.student_id
+        WHERE e.class_id = %s
+    """, (class_id,))
+    students = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return students
+
+def get_attendance_for_student(student_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT a.*, c.class_name FROM attendance a
+        JOIN classes c ON a.class_id = c.id
+        WHERE a.student_id = %s
+        ORDER BY a.date DESC
+    """, (student_id,))
+    records = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return records
+
+def mark_attendance(student_id, class_id, date, status="Present"):
     """Mark attendance for a student. Updates if already exists."""
     conn = get_db_connection()
     cursor = conn.cursor()
     
     # Check if entry exists
-    cursor.execute("SELECT id FROM attendance WHERE student_id = %s AND date = %s", (student_id, date))
+    cursor.execute("SELECT id FROM attendance WHERE student_id = %s AND class_id = %s AND date = %s", 
+                   (student_id, class_id, date))
     existing = cursor.fetchone()
     
     if existing:
         cursor.execute("UPDATE attendance SET status = %s WHERE id = %s", (status, existing[0]))
     else:
-        cursor.execute("INSERT INTO attendance (student_id, date, status) VALUES (%s, %s, %s)", 
-                       (student_id, date, status))
+        cursor.execute("INSERT INTO attendance (student_id, class_id, date, status) VALUES (%s, %s, %s, %s)", 
+                       (student_id, class_id, date, status))
     
     conn.commit()
     cursor.close()
