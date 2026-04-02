@@ -39,36 +39,58 @@ jobs:
 
           ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << 'EOF'
 
-            # Set up Docker network (if needed)
+            echo "===== START DEPLOYMENT ====="
+
+            # Create Docker network if not exists
             docker network create app_network || true
 
-            # Stop and remove existing MySQL and Flask containers if they exist
-            docker stop mysql-db || true
-            docker rm mysql-db || true
+            # =========================
+            # MYSQL HANDLING (SAFE)
+            # =========================
+
+            if [ "$(docker ps -a -q -f name=mysql-db)" ]; then
+                echo "MySQL container exists"
+
+                if [ "$(docker ps -q -f name=mysql-db)" ]; then
+                    echo "MySQL already running"
+                else
+                    echo "Starting MySQL container..."
+                    docker start mysql-db
+                fi
+            else
+                echo "Creating new MySQL container with persistent volume..."
+
+                docker volume create mysql_data || true
+
+                docker run -d \
+                  --name mysql-db \
+                  --network app_network \
+                  -e MYSQL_ROOT_PASSWORD=root \
+                  -e MYSQL_DATABASE=attendance_db \
+                  -p 3306:3306 \
+                  -v mysql_data:/var/lib/mysql \
+                  mysql:latest
+
+                echo "Waiting for MySQL to initialize..."
+                sleep 30
+            fi
+
+            echo "Ensuring database exists..."
+            docker exec mysql-db mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS attendance_db;" || true
+
+            # =========================
+            # FLASK APP DEPLOYMENT
+            # =========================
+
+            echo "Stopping old Flask container..."
             docker stop flask-app || true
             docker rm flask-app || true
 
-            # Run MySQL container
-            docker run -d \
-              --name mysql-db \
-              --network app_network \
-              -e MYSQL_ROOT_PASSWORD=root \
-              -e MYSQL_DATABASE=attendance_db \
-              -p 3306:3306 \
-              mysql:latest
-
-            # Wait for MySQL to fully start
-            echo "Waiting for MySQL to initialize..."
-            sleep 30
-
-            # Create database (this is optional if you want to ensure it exists)
-            docker exec mysql-db mysql -uroot -prootpassword -e "CREATE DATABASE IF NOT EXISTS attendance_db;"
-
-            # Pull latest Flask app
+            echo "Pulling latest Docker image..."
             docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
             docker pull ${{ secrets.DOCKER_USERNAME }}/flask-attendance-app
 
-            # Run Flask app container
+            echo "Starting new Flask container..."
             docker run -d \
               --name flask-app \
               --network app_network \
@@ -78,5 +100,7 @@ jobs:
               -e DB_PASSWORD=root \
               -e DB_NAME=attendance_db \
               ${{ secrets.DOCKER_USERNAME }}/flask-attendance-app
+
+            echo "===== DEPLOYMENT COMPLETE ====="
 
           EOF
