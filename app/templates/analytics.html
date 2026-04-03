@@ -51,7 +51,7 @@
     let myChart = null;
 
     document.addEventListener('DOMContentLoaded', () => {
-        // Set default dates
+        // Set default
         const today = new Date().toISOString().split('T')[0];
         const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         document.getElementById('startDate').value = lastWeek;
